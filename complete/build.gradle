@@ -12,13 +12,40 @@ repositories {
 	mavenCentral()
 }
 
+configurations {
+    antJUnit
+}
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	testImplementation('org.springframework.boot:spring-boot-starter-test') {
 		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
 	}
+	antJUnit 'org.apache.ant:ant-junit:1.9.7'
 }
 
 test {
-	useJUnitPlatform()
+        useJUnitPlatform()
+        reports {
+             junitXml.enabled = true
+             html.enabled = false
+        }
+}
+
+task mergeJUnitReports {
+    ext {
+        resultsDir = file("$buildDir/test-results/test")
+        targetDir = file("$buildDir/test-results/merged")
+    }
+
+    doLast {
+        ant.taskdef(name: 'junitreport',
+                    classname: 'org.apache.tools.ant.taskdefs.optional.junit.XMLResultAggregator',
+                    classpath: configurations.antJUnit.asPath)
+
+        ant.junitreport(todir: resultsDir) {
+            fileset(dir: resultsDir, includes: 'TEST-*.xml')
+            report(todir: targetDir, format: 'frames')
+        }
+    }
 }
